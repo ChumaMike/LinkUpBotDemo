@@ -8,7 +8,7 @@ app = Flask(__name__)
 def home():
     return "Bot is running"
 
-@app.route("/whatsapp", methods=["POST"]):
+@app.route("/whatsapp", methods=["POST"])
 def wahtsapp():
     incoming_msg = request.values.get("Body", "").lower()
     response = MessagingResponse()
@@ -23,5 +23,5 @@ def wahtsapp():
     return str(response)
 
 
-if __name__ = "__main__":
+if __name__== "__main__":
     app.run(debug=True)
