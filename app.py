@@ -33,7 +33,7 @@ def wahtsapp():
                     msg.body(f"No houses found in {city}")
                 found = True
                 
-            elif "job" or "work" in incoming_msg:
+            elif "job" in incoming_msg or "work" in incoming_msg:
                 jobs = listings[city].get("jobs", [])
                 
                 if jobs:
