@@ -1,7 +1,13 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
+import json
+
 
 app = Flask(__name__)
+
+
+with open("listings.json", "r") as file:
+    listings = json.load(file)
 
 @app.route("/home")
 @app.route("/")
@@ -13,12 +19,30 @@ def wahtsapp():
     incoming_msg = request.values.get("Body", "").lower()
     response = MessagingResponse()
     msg = response.message()
-    if "house" in incoming_msg or "rent" in incoming_msg:
-        msg.body("Here are some places to rent in Rosebank: \n1. 2-bed in Parktown - R15K\n2. Studio in Melrose - R10K")
-    elif "job" in incoming_msg:
-        msg.body("Available jobs:\n- Sales Assistant in Rosebank\n- Remote Social Media Intern")
-    else:
-        msg.body("Hi! Welcome to LinkUp. Reply with:\n- 'house' to find rentals\n- 'job' to find jobs")
+    
+    found = False
+    
+    for city in listings:
+        if city in incoming_msg:
+            if "house" or "rent" in incoming_msg:
+                houses = listings[city].get("houses", [])
+    
+                if houses:
+                    msg.body(f"Houses in {city}: \n" + "\n- ".join(houses))
+                else:
+                    msg.body(f"No houses found in {city}")
+                found = True
+                
+            elif "job" or "work" in incoming_msg:
+                jobs = listings[city].get("jobs", [])
+                
+                if jobs:
+                    msg.body(f"Jobs in {city}: \n" + "\n-".join(jobs))
+                else:
+                    msg.body(f"Umsebenzi unqabile in {city}")
+                found = True
+    if not found:
+        msg.body("Hi! Welcome to LinkUp.\nType something like 'house in Rosebank' or 'work in Soweto'.")
 
     return str(response)
 
