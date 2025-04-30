@@ -1,5 +1,5 @@
 {
-    "Rosebank": {
+    "rosebank": {
       "houses": [
         "2-bed in Parktown - R15,000",
         "Studio in Melrose - R10,000"
@@ -9,12 +9,12 @@
         "Remote IT Support"
       ]
     },
-    "Soweto": {
+    "soweto": {
       "houses": [
         "3-bed in Pimville - R20,000"
  ],
       "jobs": [
-        "Beach Tour Guide – KES 25,000"
+        "Beach Tour Guide - R15,000"
       ]
     }
   }

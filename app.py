@@ -24,11 +24,11 @@ def wahtsapp():
     
     for city in listings:
         if city in incoming_msg:
-            if "house" or "rent" in incoming_msg:
+            if "house" in incoming_msg or "rent" in incoming_msg:
                 houses = listings[city].get("houses", [])
     
                 if houses:
-                    msg.body(f"Houses in {city}: \n" + "\n- ".join(houses))
+                    msg.body(f"Houses in {city}:\n\n" + "\n".join(houses))
                 else:
                     msg.body(f"No houses found in {city}")
                 found = True
@@ -37,12 +37,12 @@ def wahtsapp():
                 jobs = listings[city].get("jobs", [])
                 
                 if jobs:
-                    msg.body(f"Jobs in {city}: \n" + "\n-".join(jobs))
+                    msg.body(f"Jobs in {city}:\n\n" + "\n".join(jobs))
                 else:
                     msg.body(f"Umsebenzi unqabile in {city}")
                 found = True
     if not found:
-        msg.body("Hi! Welcome to LinkUp.\nType something like 'house in Rosebank' or 'work in Soweto'.")
+        msg.body("Hi! Welcome to LinkUp.\nType something like 'house in Rosebank' or 'job in Soweto'.")
 
     return str(response)
 
