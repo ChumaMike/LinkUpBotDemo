@@ -21,30 +21,28 @@ def wahtsapp():
     msg = response.message()
     
     found = False
+    reply = ""
     
-    for city in listings:
+    cities = ["johannesburg", "pretoria", "soweto"]
+    
+    categories = {
+        "house": ["house", "rent", "apartment", "flat"],
+        "job": ["job", "work", "umsebenzi"],
+        "service": ["service", "help", "cleaning", "hair", "repair"]
+    }
+    
+    for city in cities:
         if city in incoming_msg:
-            if "house" in incoming_msg or "rent" in incoming_msg:
-                houses = listings[city].get("houses", [])
+            the_city = city
+            
+    for category, value_words in categories.items():
+        for word in value_words:
+            if word in incoming_msg:
+                the_category = category
     
-                if houses:
-                    msg.body(f"Houses in {city}:\n\n" + "\n".join(houses))
-                else:
-                    msg.body(f"No houses found in {city}")
-                found = True
-                
-            elif "job" in incoming_msg or "work" in incoming_msg:
-                jobs = listings[city].get("jobs", [])
-                
-                if jobs:
-                    msg.body(f"Jobs in {city}:\n\n" + "\n".join(jobs))
-                else:
-                    msg.body(f"Umsebenzi unqabile in {city}")
-                found = True
-    if not found:
-        msg.body("Hi! Welcome to LinkUp.\nType something like 'house in Rosebank' or 'job in Soweto'.")
-
-    return str(response)
+    if the_city and the_category:
+        results = []
+    
 
 
 if __name__== "__main__":
