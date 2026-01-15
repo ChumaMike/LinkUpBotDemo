@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinkUp Dashboard</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f4f4f9; }
+        .sidebar { width: 250px; background: #2c3e50; color: white; height: 100vh; position: fixed; padding: 20px; }
+        .content { margin-left: 290px; padding: 20px; }
+        .card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .badge { background: #27ae60; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; }
+        .btn-logout { display: block; margin-top: 50px; color: #e74c3c; text-decoration: none; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>LinkUp Geo 🌍</h2>
+        <p>Welcome, {{ user.name }}</p>
+        <span class="badge">{{ user.role.upper() }}</span>
+        
+        <br><br>
+        <a href="/map" style="color:white; text-decoration:none;">🌍 View Live Map</a>
+        <br><br>
+        <a href="/logout" class="btn-logout">🚪 Log Out</a>
+    </div>
+
+    <div class="content">
+        <h1>My Dashboard</h1>
+
+        <div class="card">
+            <h3>Stats</h3>
+            <p>Phone: {{ user.phone_number }}</p>
+            <p>Account Status: <span style="color:green">Active ✅</span></p>
+        </div>
+
+        {% if listings %}
+        <div class="card">
+            <h3>My Listings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in listings %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.category }}</td>
+                        <td>{{ item.price }}</td>
+                        <td>
+                            {% if item.is_verified %}
+                                ✅ Verified
+                            {% else %}
+                                ⚠️ Pending
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+</body>
+</html>

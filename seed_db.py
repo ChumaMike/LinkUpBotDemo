@@ -12,11 +12,11 @@ with app.app_context():
     # 1. Create Users (Providers)
     print("👤 Creating Users...")
     
-    # A Verified Provider (e.g., You verified his ID)
     user_joe = User(phone_number="27123456789", name="Joe The Plumber", role="provider")
+    user_joe.set_password("password123") 
     
-    # An Unverified Public User (e.g., Random person posting)
     user_random = User(phone_number="27999888777", name="Random Guy", role="client")
+    user_random.set_password("password123")
     
     db.session.add(user_joe)
     db.session.add(user_random)
