@@ -5,16 +5,17 @@ from src.models.listing_model import Listing
 web_bp = Blueprint('web', __name__)
 
 @web_bp.route("/")
+def home():
+    """The Landing Page"""
+    return render_template("home.html")
+
 @web_bp.route("/map")
 def map_view():
-    # 1. Fetch ALL listings from the DB
+    """The Map Dashboard"""
     listings = Listing.query.all()
-    
-    # 2. Convert to a list of dicts for the Javascript to use
     data = [item.to_dict() for item in listings]
-    
-    # 3. Render the HTML page
-    return render_template("map.html", listings=data)
+    # We now render a NEW template called 'map_pro.html' (see Phase 3)
+    return render_template("map_pro.html", listings=data)
 
 
 @web_bp.route("/dashboard")
