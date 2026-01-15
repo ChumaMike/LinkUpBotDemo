@@ -1,42 +1,41 @@
-import json
-import os
+from src.models.listing_model import Listing, db
+from src.utils.geo_utils import calculate_distance
 
 class ListingService:
-    def __init__(self, data_file="listings.json"):
-        self.data_file = data_file
-        self.listings = self._load_data()
+    
+    def get_listings_near_me(self, category, user_lat, user_lon, radius_km=10):
+        """
+        Finds listings within a specific radius of the user.
+        """
+        # 1. Get all listings in that category
+        all_listings = Listing.query.filter_by(category=category.lower()).all()
+        
+        nearby_results = []
+        
+        # 2. Filter by distance
+        for item in all_listings:
+            dist = calculate_distance(user_lat, user_lon, item.latitude, item.longitude)
+            
+            if dist <= radius_km:
+                # Add distance to the object so we can show "2.5km away"
+                item_data = item.to_dict()
+                item_data['distance_km'] = round(dist, 1)
+                nearby_results.append(item_data)
+        
+        # 3. Sort by nearest first (or by rating!)
+        nearby_results.sort(key=lambda x: x['distance_km'])
+        
+        return nearby_results
 
-    def _load_data(self):
-        # Enterprise Safety: Handle missing files gracefully
-        if not os.path.exists(self.data_file):
-            print(f"Error: {self.data_file} not found.")
-            return []
-        try:
-            with open(self.data_file, "r") as file:
-                return json.load(file)
-        except json.JSONDecodeError:
-            print(f"Error: {self.data_file} contains invalid JSON.")
-            return []
-
-    def get_listings(self, city, category):
-        """
-        Filters listings by city and category.
-        """
-        results = [
-            item for item in self.listings
-            if item["category"] == category and item["city"] == city
-        ]
-        return results
-
-    def format_listings_response(self, listings, city, category):
-        """
-        Formats the list of objects into a WhatsApp-friendly string.
-        """
+    def format_listings_response(self, listings, city_or_context):
         if not listings:
-            return f"No {category}s found in {city}."
+            return f"No listings found nearby."
         
-        reply = f"*{category.capitalize()} listings in {city.capitalize()}:*\n"
+        reply = f"*Found {len(listings)} results near {city_or_context}:*\n\n"
         for item in listings:
-            reply += f"• {item['title']} - {item['price']}\n  Call: {item['contact']}\n"
-        
+            rating_str = item.get('rating', 'New')
+            dist = item.get('distance_km', '?')
+            reply += (f"📍 *{item['title']}* ({dist}km away)\n"
+                      f"   💰 {item['price']} | ⭐ {rating_str}\n"
+                      f"   📞 {item['contact']}\n\n")
         return reply
