@@ -1,7 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-db = SQLAlchemy()
+# The one and only DB instance
+db = SQLAlchemy() 
 
 class Listing(db.Model):
     __tablename__ = 'listings'
