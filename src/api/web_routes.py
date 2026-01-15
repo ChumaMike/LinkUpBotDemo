@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
 from src.models.listing_model import Listing
+from flask import request, redirect, url_for, flash
 
 web_bp = Blueprint('web', __name__)
 
@@ -33,3 +34,44 @@ def dashboard():
     
     # 3. Regular clients just see the profile
     return render_template("dashboard.html", user=current_user, listings=[])
+
+@web_bp.route("/listings/add", methods=["POST"])
+@login_required
+def add_listing():
+    # 1. Get data from form
+    title = request.form.get("title")
+    category = request.form.get("category")
+    price = request.form.get("price")
+    address = request.form.get("address")
+    
+    # 2. Validation (Basic)
+    if not title or not price:
+        flash("Title and Price are required!", "error")
+        return redirect(url_for("web.dashboard"))
+
+    # 3. Create Listing
+    # NOTE: For now, we are hardcoding a location near Soweto for all new pins 
+    # so they show up on the map. Later we can add a "Pin Picker".
+    import random
+    base_lat = -26.2514
+    base_lon = 27.8967
+    
+    new_listing = Listing(
+        title=title,
+        category=category,
+        price=price,
+        contact=current_user.phone_number, # Use the user's phone
+        address=address,
+        provider_id=current_user.id,
+        is_verified=True, # Auto-verify logic for now
+        rating=5.0,
+        # Randomize location slightly so pins don't stack perfectly on top of each other
+        latitude=base_lat + (random.uniform(-0.01, 0.01)),
+        longitude=base_lon + (random.uniform(-0.01, 0.01))
+    )
+    
+    db.session.add(new_listing)
+    db.session.commit()
+    
+    flash("Listing created successfully!", "success")
+    return redirect(url_for("web.dashboard"))
