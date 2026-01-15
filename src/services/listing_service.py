@@ -27,15 +27,22 @@ class ListingService:
         
         return nearby_results
 
-    def format_listings_response(self, listings, city_or_context):
+def format_listings_response(self, listings, city_or_context):
         if not listings:
             return f"No listings found nearby."
         
         reply = f"*Found {len(listings)} results near {city_or_context}:*\n\n"
+        
         for item in listings:
+            # 1. Check the Verification Status
+            badge = "✅ *VERIFIED*" if item.get('is_verified') else "⚠️ _Unverified_"
+            
+            # 2. Format the Message
             rating_str = item.get('rating', 'New')
             dist = item.get('distance_km', '?')
-            reply += (f"📍 *{item['title']}* ({dist}km away)\n"
+            
+            reply += (f"📍 *{item['title']}* {badge}\n"
+                      f"   Distance: {dist}km away\n"
                       f"   💰 {item['price']} | ⭐ {rating_str}\n"
                       f"   📞 {item['contact']}\n\n")
         return reply

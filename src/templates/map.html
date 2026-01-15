@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinkUp Geo Map 🌍</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        body { margin: 0; font-family: sans-serif; }
+        #map { height: 100vh; width: 100%; }
+        .badge { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Initialize Map (Centered on Soweto)
+        var map = L.map('map').setView([-26.2514, 27.8967], 13);
+
+        // 2. Add OpenStreetMap Tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 3. Load Data from Flask
+        var listings = {{ listings | tojson }};
+
+        // 4. Loop through data and add Pins
+        listings.forEach(item => {
+            var marker = L.marker([item.location.lat, item.location.lon]).addTo(map);
+            
+            var verifiedStatus = item.is_verified ? '<span class="badge">✅ VERIFIED</span>' : '⚠️ Unverified';
+            
+            marker.bindPopup(`
+                <b>${item.title}</b><br>
+                ${verifiedStatus}<br>
+                Price: ${item.price}<br>
+                <a href="tel:${item.contact}">Call: ${item.contact}</a>
+            `);
+        });
+    </script>
+</body>
+</html>
