@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-from src.models.listing_model import Listing
+from src.models.listing_model import db, Listing
 from flask import request, redirect, url_for, flash
 
 web_bp = Blueprint('web', __name__)
@@ -75,3 +75,29 @@ def add_listing():
     
     flash("Listing created successfully!", "success")
     return redirect(url_for("web.dashboard"))
+
+@web_bp.route("/listings/edit/<int:listing_id>", methods=["GET", "POST"])
+@login_required
+def edit_listing(listing_id):
+    # 1. Find the listing
+    listing = Listing.query.get_or_404(listing_id)
+    
+    # 2. Security Check: Ensure the logged-in user OWNS this listing
+    # (Admins can edit anything)
+    if listing.provider_id != current_user.id and current_user.role != 'admin':
+        flash("You are not authorized to edit this listing.", "error")
+        return redirect(url_for("web.dashboard"))
+
+    # 3. Handle the Save (POST)
+    if request.method == "POST":
+        listing.title = request.form.get("title")
+        listing.category = request.form.get("category")
+        listing.price = request.form.get("price")
+        listing.address = request.form.get("address")
+        
+        db.session.commit() # Save changes
+        flash("Listing updated successfully!", "success")
+        return redirect(url_for("web.dashboard"))
+
+    # 4. Handle the View (GET) - Show the form
+    return render_template("edit_listing.html", listing=listing)

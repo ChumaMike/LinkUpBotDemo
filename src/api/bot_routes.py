@@ -1,62 +1,61 @@
 from flask import Blueprint, request
 from twilio.twiml.messaging_response import MessagingResponse
-from src.services.parser_service import MessageParser
 from src.services.listing_service import ListingService
 from src.services.weather_service import WeatherService
+# 1. Import the Brain
+from src.services.ai_service import ai_brain 
 
 bot_bp = Blueprint('bot', __name__)
-
-# Initialize Services
 listing_service = ListingService()
 weather_service = WeatherService()
 
 @bot_bp.route("/whatsapp", methods=["POST"])
 def whatsapp():
-    # 1. Grab incoming data
-    incoming_msg = request.values.get("Body", "").lower()
+    incoming_msg = request.values.get("Body", "").strip() # Keep case for AI context
     latitude = request.values.get("Latitude")
     longitude = request.values.get("Longitude")
     
+    response = MessagingResponse()
     reply = ""
 
-    # 2. Check: Did they send a Location Pin? 📍
-    if latitude and longitude:
-        try:
-            user_lat = float(latitude)
-            user_lon = float(longitude)
-            
-            # Smart Logic: If they send a pin, we assume they want Services nearby (Plumbers, etc.)
-            # Later, we can make this smarter (remember if they asked for jobs vs houses)
-            results = listing_service.get_listings_near_me("service", user_lat, user_lon)
+    try:
+        # A. Handle Location Pins (Highest Priority)
+        if latitude and longitude:
+            results = listing_service.get_listings_near_me("service", float(latitude), float(longitude))
             reply = listing_service.format_listings_response(results, "your location")
-            
-        except ValueError:
-            reply = "Error: Invalid location data received."
 
-    # 3. Check: Did they send Text? 💬
-    elif incoming_msg:
-        # Parse the intent
-        parsed_data = MessageParser.parse(incoming_msg)
-        
-        if parsed_data["type"] == "weather":
-            reply = weather_service.get_weather(parsed_data["city"]) 
+        # B. Handle Text with AI Brain 🧠
+        elif incoming_msg:
+            # 1. Ask Gemini what this means
+            analysis = ai_brain.parse_intent(incoming_msg)
             
-        elif parsed_data["type"] == "search_listings":
-            results = listing_service.get_listings(parsed_data["city"], parsed_data["category"])
-            reply = listing_service.format_listings_response(results, parsed_data["city"], parsed_data["category"])
+            print(f"🤖 AI Analysis: {analysis}") # Debug log to see what Gemini thinks
+
+            intent = analysis.get("intent")
             
-        else:
-            # Help Message
-            reply = (
-                "👋 *Welcome to LinkUp Geo!*\n\n"
-                "I can find things near you.\n"
-                "📍 *Send your Location Pin* to find services nearby.\n\n"
-                "Or type:\n"
-                "• _house in Soweto_\n"
-                "• _weather in Pretoria_"
-            )
+            if intent == "search_listings":
+                # Extract details
+                category = analysis.get("category", "service") # Default to service
+                location = analysis.get("location", "Soweto")  # Default location
+                keywords = analysis.get("keywords", "")
+                
+                # Search DB
+                results = listing_service.get_listings(location, category)
+                reply = listing_service.format_listings_response(results, f"{keywords} in {location}")
             
-    # 4. Send Response
-    response = MessagingResponse()
+            elif intent == "weather":
+                city = analysis.get("location", "Johannesburg")
+                reply = weather_service.get_weather(city)
+                
+            elif intent == "greeting":
+                reply = "👋 Howzit! I'm LinkUp AI. Tell me what you need (e.g., 'My sink is leaking' or 'I need a job')."
+                
+            else:
+                reply = "🤔 I'm not sure I understood. Try sending your Location Pin 📍 or say 'I need a plumber'."
+
+    except Exception as e:
+        print(f"CRITICAL ERROR: {e}")
+        reply = "🚨 System hiccup. Please try again."
+
     response.message(reply)
     return str(response)

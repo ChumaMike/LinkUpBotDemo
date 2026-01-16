@@ -94,7 +94,9 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-light text-primary"><i class="bi bi-pencil"></i></button>
+                                    <a href="/listings/edit/{{ item.id }}" class="btn btn-sm btn-light text-primary">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
