@@ -38,6 +38,15 @@ def add_listing():
     category = request.form.get("category")
     price = request.form.get("price")
     address = request.form.get("address")
+
+    existing_listing = Listing.query.filter_by(
+        title=title, 
+        provider_id=current_user.id
+    ).first()
+
+    if existing_listing:
+        flash("You have already posted this service! Edit the existing one instead.", "warning")
+        return redirect(url_for("web.dashboard"))
     
     # --- 1. GEOCODING (Get Real Location) ---
     lat, lon = None, None
