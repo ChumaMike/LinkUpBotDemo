@@ -27,9 +27,9 @@ class ListingService:
         nearby_listings.sort(key=lambda x: x['distance'])
         return nearby_listings
 
-    def get_listings(self, location, category):
+    def get_listings(self, location, category, keyword=None):
         """
-        [FIXED] Searches by Text (City/Township) instead of GPS.
+        [UPGRADED] Searches by Location, Category, AND Specific Keywords (Title).
         """
         try:
             query = Listing.query
@@ -39,18 +39,22 @@ class ListingService:
                 query = query.filter(Listing.category == category)
                 
             # 2. Filter by Location
-            # SAFETY CHECK: Ensure location is a real string and not None
             if location and isinstance(location, str) and location.lower() != 'near me':
-                # Use ILIKE for Postgres/Production or CONTAINS for SQLite
-                # We stick to the standard 'contains' which works on both usually
                 query = query.filter(Listing.address.contains(location))
-                
+
+            # 3. [NEW] Filter by Keyword (e.g., "Car Wash", "Plumber")
+            if keyword:
+                # We look for the keyword in the Title OR the Category
+                # using 'ilike' for case-insensitive search (works in SQLite as simple filter usually)
+                search_term = f"%{keyword}%"
+                query = query.filter(Listing.title.ilike(search_term))
+            
             results = query.all()
             return [item.to_dict() for item in results]
 
         except Exception as e:
             print(f"⚠️ Search Error: {e}")
-            return [] # Return empty list so bot doesn't crash
+            return []
 
     def format_listings_response(self, listings, context):
         """

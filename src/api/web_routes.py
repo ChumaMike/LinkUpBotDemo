@@ -1,7 +1,9 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from src.models.listing_model import db, Listing
-from flask import request, redirect, url_for, flash
+from geopy.geocoders import Nominatim
+# --- NEW: Import the AI Brain ---
+from src.services.ai_service import ai_brain 
 
 web_bp = Blueprint('web', __name__)
 
@@ -12,68 +14,79 @@ def home():
 
 @web_bp.route("/map")
 def map_view():
-    """The Map Dashboard"""
+    """The Map Dashboard (Public View)"""
     listings = Listing.query.all()
     data = [item.to_dict() for item in listings]
-    # We now render a NEW template called 'map_pro.html' (see Phase 3)
     return render_template("map_pro.html", listings=data)
 
-
 @web_bp.route("/dashboard")
-@login_required  # <--- SECURITY: Rejects anyone who isn't logged in
+@login_required
 def dashboard():
-    # 1. If they are a Provider, show THEIR listings only
-    if current_user.role == 'provider':
-        my_listings = Listing.query.filter_by(provider_id=current_user.id).all()
-        return render_template("dashboard.html", user=current_user, listings=my_listings)
+    # 1. Get the raw database objects for this provider
+    raw_listings = Listing.query.filter_by(provider_id=current_user.id).all()
     
-    # 2. If they are an Admin (You), show EVERYTHING
-    elif current_user.role == 'admin':
-        all_listings = Listing.query.all()
-        return render_template("dashboard.html", user=current_user, listings=all_listings)
+    # 2. Convert to Dictionaries (Fixes "Not JSON Serializable" error)
+    listings_data = [item.to_dict() for item in raw_listings]
     
-    # 3. Regular clients just see the profile
-    return render_template("dashboard.html", user=current_user, listings=[])
+    # 3. Send Clean Data to template
+    return render_template("dashboard.html", user=current_user, listings=listings_data)
 
 @web_bp.route("/listings/add", methods=["POST"])
 @login_required
 def add_listing():
-    # 1. Get data from form
     title = request.form.get("title")
     category = request.form.get("category")
     price = request.form.get("price")
     address = request.form.get("address")
     
-    # 2. Validation (Basic)
-    if not title or not price:
-        flash("Title and Price are required!", "error")
-        return redirect(url_for("web.dashboard"))
+    # --- 1. GEOCODING (Get Real Location) ---
+    lat, lon = None, None
+    try:        
+        geolocator = Nominatim(user_agent="linkup_geo_app")
+        # Append country to ensure local results
+        location = geolocator.geocode(f"{address}, South Africa")
+        
+        if location:
+            lat = location.latitude
+            lon = location.longitude
+        else:
+            # Fallback: Soweto Center
+            lat = -26.2514
+            lon = 27.8967
+            
+    except Exception as e:
+        print(f"Geocoding Error: {e}")
+        lat = -26.2514
+        lon = 27.8967
 
-    # 3. Create Listing
-    # NOTE: For now, we are hardcoding a location near Soweto for all new pins 
-    # so they show up on the map. Later we can add a "Pin Picker".
-    import random
-    base_lat = -26.2514
-    base_lon = 27.8967
-    
+    # --- 2. AI AUTO-TAGGING (The New Brain) ---
+    # We ask Gemini to generate search keywords based on the title
+    try:
+        generated_tags = ai_brain.generate_keywords(title, category)
+        print(f"🏷️ Auto-generated tags: {generated_tags}")
+    except Exception as e:
+        print(f"⚠️ Tagging Failed: {e}")
+        generated_tags = title.lower() # Fallback
+
+    # --- 3. SAVE TO DB ---
     new_listing = Listing(
         title=title,
         category=category,
         price=price,
-        contact=current_user.phone_number, # Use the user's phone
+        contact=current_user.phone_number,
         address=address,
         provider_id=current_user.id,
-        is_verified=True, # Auto-verify logic for now
+        is_verified=True,
         rating=5.0,
-        # Randomize location slightly so pins don't stack perfectly on top of each other
-        latitude=base_lat + (random.uniform(-0.01, 0.01)),
-        longitude=base_lon + (random.uniform(-0.01, 0.01))
+        latitude=lat,
+        longitude=lon,
+        keywords=generated_tags  # <--- Saving the AI tags here
     )
     
     db.session.add(new_listing)
     db.session.commit()
     
-    flash("Listing created successfully!", "success")
+    flash("Listing created on the map with AI Tags!", "success")
     return redirect(url_for("web.dashboard"))
 
 @web_bp.route("/listings/edit/<int:listing_id>", methods=["GET", "POST"])
@@ -82,8 +95,7 @@ def edit_listing(listing_id):
     # 1. Find the listing
     listing = Listing.query.get_or_404(listing_id)
     
-    # 2. Security Check: Ensure the logged-in user OWNS this listing
-    # (Admins can edit anything)
+    # 2. Security Check
     if listing.provider_id != current_user.id and current_user.role != 'admin':
         flash("You are not authorized to edit this listing.", "error")
         return redirect(url_for("web.dashboard"))
@@ -95,9 +107,12 @@ def edit_listing(listing_id):
         listing.price = request.form.get("price")
         listing.address = request.form.get("address")
         
-        db.session.commit() # Save changes
+        # Optional: You could re-run AI tagging here if the title changed
+        # listing.keywords = ai_brain.generate_keywords(listing.title, listing.category)
+        
+        db.session.commit()
         flash("Listing updated successfully!", "success")
         return redirect(url_for("web.dashboard"))
 
-    # 4. Handle the View (GET) - Show the form
+    # 4. Handle the View (GET)
     return render_template("edit_listing.html", listing=listing)

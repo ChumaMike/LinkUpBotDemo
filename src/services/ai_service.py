@@ -1,6 +1,7 @@
 import os
 import google.generativeai as genai
 import json
+from src.services.ai_service import ai_brain
 
 class AIService:
     def __init__(self):
@@ -46,6 +47,28 @@ class AIService:
             print(f"AI Brain Error: {e}")
             # Fallback if AI fails
             return {"intent": "unknown"}
+        
+    def generate_keywords(self, title, category):
+        """
+        [NEW] reads a listing title and creates searchable tags.
+        e.g. "Sparks Fix" -> "electrician, wiring, maintenance, lights"
+        """
+        try:
+            prompt = f"""
+            Generate 5 comma-separated search keywords for a service.
+            Title: "{title}"
+            Category: "{category}"
+            
+            Rules:
+            1. Include synonyms (e.g. if 'Car Wash', add 'cleaning', 'vehicle').
+            2. Return ONLY the words separated by commas. No intro text.
+            """
+            
+            response = self.model.generate_content(prompt)
+            return response.text.lower().strip()
+        except Exception as e:
+            print(f"Auto-Tag Error: {e}")
+            return title.lower() # Fallback to just using the title
         
 
 # Singleton instance

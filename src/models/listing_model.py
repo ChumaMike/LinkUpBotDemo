@@ -12,7 +12,9 @@ class Listing(db.Model):
     price = db.Column(db.String(50))
     contact = db.Column(db.String(50))
     # Ensure this column matches exactly what we use in the service
-    address = db.Column(db.String(200)) 
+    address = db.Column(db.String(200))
+    # NEW: Hidden column for AI tags
+    keywords = db.Column(db.String(500), default="")
     
     # Provider linking
     provider_id = db.Column(db.Integer, db.ForeignKey('users.id'))
@@ -36,9 +38,10 @@ class Listing(db.Model):
             'category': self.category,
             'price': self.price,
             'contact': self.contact,
-            'address': self.address,  # <--- THIS WAS LIKELY MISSING!
+            'address': self.address,
             'is_verified': self.is_verified,
             'rating': self.rating,
             'latitude': self.latitude,
-            'longitude': self.longitude
+            'longitude': self.longitude,
+            'keywords': self.keywords
         }
