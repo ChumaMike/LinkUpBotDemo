@@ -16,17 +16,25 @@ def login():
         # Check if user exists AND password is correct
         if user and user.check_password(password):
             login_user(user)
-            flash('Logged in successfully!', 'success')
-            return redirect(url_for('web.dashboard')) # We will create this view next
+            flash(f'Welcome back, {user.name}!', 'success')
+            
+            # --- INTELLIGENT ROUTING ---
+            # If Admin, go to Command Center
+            if user.role == 'admin':
+                return redirect(url_for('admin.admin_panel'))
+            # If anyone else (Customer OR Provider), go to Dashboard
+            # (The dashboard logic we wrote earlier will sort them out)
+            return redirect(url_for('web.dashboard')) 
         else:
             flash('Invalid phone number or password.', 'error')
             
-    return render_template('login.html')
+    return render_template('auth/login.html')
 
 @auth_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
+    flash('You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
@@ -35,6 +43,7 @@ def signup():
         phone = request.form.get('phone')
         name = request.form.get('name')
         password = request.form.get('password')
+        role = request.form.get('role') # <--- GET THE CHOICE HERE
         
         # Check if user already exists
         user = User.query.filter_by(phone_number=phone).first()
@@ -42,9 +51,14 @@ def signup():
             flash('Phone number already registered.', 'error')
             return redirect(url_for('auth.signup'))
         
-        # Create new user
-        new_user = User(phone_number=phone, name=name, role='provider')
-        new_user.set_password(password) # Hash the password
+        # Create new user with the selected ROLE
+        # Default to 'customer' if something goes wrong
+        new_user = User(
+            phone_number=phone, 
+            name=name, 
+            role=role if role else 'customer'
+        )
+        new_user.set_password(password)
         
         db.session.add(new_user)
         db.session.commit()
@@ -52,4 +66,4 @@ def signup():
         flash('Account created! Please log in.', 'success')
         return redirect(url_for('auth.login'))
         
-    return render_template('signup.html')
+    return render_template('auth/signup.html')

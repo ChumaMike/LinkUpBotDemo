@@ -34,7 +34,7 @@ def admin_login():
             flash("🚫 Access Denied: Incorrect Key.", "error")
             return redirect(url_for('admin.admin_login'))
 
-    return render_template("admin_login.html")
+    return render_template("admin/admin_login.html")
 
 # ---------------------------------------------------------
 # 🚪 2. Admin Logout
@@ -59,7 +59,7 @@ def admin_panel():
     users = User.query.all()
     listings = Listing.query.order_by(Listing.created_at.desc()).all()
     
-    return render_template("admin.html", 
+    return render_template("admin/admin.html", 
                            stats={
                                "users": total_users,
                                "listings": total_listings,

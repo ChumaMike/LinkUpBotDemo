@@ -2,6 +2,7 @@ from flask import Flask
 from flask_login import LoginManager # <-- Import this
 from src.models.listing_model import db 
 from src.models.user_model import User 
+from src.api.web import web_bp, listings_bp, jobs_bp
 
 def create_app():
     app = Flask(__name__)
@@ -25,16 +26,19 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    # Register Blueprints
+    from src.api.web import web_bp, listings_bp, jobs_bp
+    
     from src.api.auth_routes import auth_bp
-    from src.api.web_routes import web_bp
     from src.api.bot_routes import bot_bp
-    from src.api.admin_routes import admin_bp  # <--- NEW IMPORT
+    from src.api.admin_routes import admin_bp
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(web_bp)
     app.register_blueprint(bot_bp)
-    app.register_blueprint(admin_bp)  # <--- REGISTER IT HERE
+    app.register_blueprint(admin_bp)
     
+    app.register_blueprint(web_bp)
+    app.register_blueprint(listings_bp)
+    app.register_blueprint(jobs_bp)
+
     return app
         

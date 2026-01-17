@@ -3,6 +3,7 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+# 1. THE LISTING (A Service Provider's Ad)
 class Listing(db.Model):
     __tablename__ = 'listings'
 
@@ -11,9 +12,9 @@ class Listing(db.Model):
     category = db.Column(db.String(50), nullable=False) # service, house, job
     price = db.Column(db.String(50))
     contact = db.Column(db.String(50))
-    # Ensure this column matches exactly what we use in the service
     address = db.Column(db.String(200))
-    # NEW: Hidden column for AI tags
+    
+    # AI Tags (Hidden Search Keywords)
     keywords = db.Column(db.String(500), default="")
     
     # Provider linking
@@ -28,10 +29,6 @@ class Listing(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
-        """
-        Converts the database object to a simple dictionary 
-        so the Bot can read it easily.
-        """
         return {
             'id': self.id,
             'title': self.title,
@@ -45,3 +42,42 @@ class Listing(db.Model):
             'longitude': self.longitude,
             'keywords': self.keywords
         }
+
+# 2. THE LEAD (A Direct Request to a Specific Listing)
+class Lead(db.Model):
+    __tablename__ = 'leads'
+
+    id = db.Column(db.Integer, primary_key=True)
+    customer_phone = db.Column(db.String(20), nullable=False) # The WhatsApp User
+    message = db.Column(db.String(200)) # "I need a callback"
+    status = db.Column(db.String(20), default="new") # new, contacted, closed
+    
+    # Relationships
+    listing_id = db.Column(db.Integer, db.ForeignKey('listings.id'))
+    provider_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'customer_phone': self.customer_phone,
+            'status': self.status,
+            'date': self.created_at.strftime("%Y-%m-%d %H:%M")
+        }
+
+# 3. THE JOB REQUEST (A Public Shout-out for Help)
+class JobRequest(db.Model):
+    __tablename__ = 'job_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('users.id')) # Who asked?
+    category = db.Column(db.String(50), nullable=False) # plumber, electrician
+    description = db.Column(db.Text, nullable=False) # "Burst pipe in kitchen"
+    location = db.Column(db.String(100)) # "Soweto, Diepkloof"
+    status = db.Column(db.String(20), default="open") # open, filled, cancelled
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Link back to User
+    customer = db.relationship('src.models.user_model.User', backref='jobs')
