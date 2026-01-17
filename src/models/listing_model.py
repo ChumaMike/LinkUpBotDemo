@@ -66,18 +66,19 @@ class Lead(db.Model):
             'date': self.created_at.strftime("%Y-%m-%d %H:%M")
         }
 
-# 3. THE JOB REQUEST (A Public Shout-out for Help)
 class JobRequest(db.Model):
     __tablename__ = 'job_requests'
 
     id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey('users.id')) # Who asked?
-    category = db.Column(db.String(50), nullable=False) # plumber, electrician
-    description = db.Column(db.Text, nullable=False) # "Burst pipe in kitchen"
-    location = db.Column(db.String(100)) # "Soweto, Diepkloof"
-    status = db.Column(db.String(20), default="open") # open, filled, cancelled
+    customer_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    category = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    location = db.Column(db.String(100))
+    status = db.Column(db.String(20), default="open")
+    
+    # [NEW] Coordinates (So the pin stays still!)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Link back to User
     customer = db.relationship('src.models.user_model.User', backref='jobs')

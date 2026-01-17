@@ -1,8 +1,9 @@
 from flask import Blueprint, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from src.models.listing_model import db, JobRequest, Listing
+from geopy.geocoders import Nominatim
+import random
 
-# Define a NEW Blueprint for Jobs
 jobs_bp = Blueprint('jobs', __name__, url_prefix='/jobs')
 
 @jobs_bp.route("/create", methods=["POST"])
@@ -10,14 +11,33 @@ jobs_bp = Blueprint('jobs', __name__, url_prefix='/jobs')
 def create():
     category = request.form.get("category")
     description = request.form.get("description")
-    location = request.form.get("location")
+    location_text = request.form.get("location")
     
-    # 1. Save Ticket
+    # 1. CALCULATE COORDINATES ONCE (The "Freeze" Logic)
+    lat, lon = -26.2514, 27.8967 # Default Soweto
+    try:
+        # Try to find real address
+        geolocator = Nominatim(user_agent="linkup_geo_app")
+        loc = geolocator.geocode(f"{location_text}, Soweto, South Africa")
+        if loc:
+            lat = loc.latitude
+            lon = loc.longitude
+        else:
+            # If address not found, Fuzz it slightly ONCE so it doesn't overlap perfectly
+            lat += random.uniform(-0.01, 0.01)
+            lon += random.uniform(-0.01, 0.01)
+    except:
+        # If internet fails, just fuzz the default
+        lat += random.uniform(-0.01, 0.01)
+        lon += random.uniform(-0.01, 0.01)
+
     new_job = JobRequest(
         customer_id=current_user.id,
         category=category,
         description=description,
-        location=location
+        location=location_text,
+        latitude=lat,   # <--- Saved forever
+        longitude=lon   # <--- Saved forever
     )
     db.session.add(new_job)
     db.session.commit()

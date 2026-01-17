@@ -136,25 +136,56 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // 1. Initialize Map (Centered on Soweto)
+    // 1. Initialize Map
+    // Ensure the container "map" exists (It is in your code, so this should work)
     var map = L.map('map').setView([-26.2514, 27.8967], 12);
 
-    // 2. Add Tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // 3. Add Pins from Database
-    // This takes the 'listings' variable from Flask and turns it into JS
-    var listings = {{ listings | tojson }};
-
-    listings.forEach(function(item) {
-        if (item.latitude && item.longitude) {
-            L.marker([item.latitude, item.longitude])
-             .addTo(map)
-             .bindPopup(`<b>${item.title}</b><br>R${item.price}`);
-        }
+    var blueIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
     });
-</script>
 
+    var redIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    });
+
+    // --- SAFETY FIX: ADD default([]) ---
+    var myListings = {{ listings | tojson | default([]) }};
+    
+    if (myListings.length > 0) {
+        myListings.forEach(function(item) {
+            if(item.latitude && item.longitude){
+                L.marker([item.latitude, item.longitude], {icon: blueIcon})
+                .addTo(map)
+                .bindPopup(`<b>🏠 My Shop: ${item.title}</b><br>Status: Live`);
+            }
+        });
+    }
+
+    // --- SAFETY FIX: ADD default([]) ---
+    var opportunities = {{ job_opportunities | tojson | default([]) }};
+    
+    if (opportunities.length > 0) {
+        opportunities.forEach(function(job) {
+            if(job.lat && job.lon){
+                L.marker([job.lat, job.lon], {icon: redIcon})
+                .addTo(map)
+                .bindPopup(`
+                    <div class="text-center">
+                        <b class="text-danger">💰 NEW LEAD</b><br>
+                        Need: ${job.category}<br>
+                        <i>"${job.description}"</i>
+                    </div>
+                `);
+            }
+        });
+    }
+</script>
 {% endblock %}
