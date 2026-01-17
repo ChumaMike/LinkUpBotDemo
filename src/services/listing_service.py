@@ -1,48 +1,77 @@
-from src.models.listing_model import Listing, db
+from src.models.listing_model import Listing
 from src.utils.geo_utils import calculate_distance
 
 class ListingService:
     
-    def get_listings_near_me(self, category, user_lat, user_lon, radius_km=10):
+    def get_listings_near_me(self, category, user_lat, user_lon, radius_km=50):
         """
-        Finds listings within a specific radius of the user.
+        Finds listings within X km of the user's GPS coordinates.
         """
-        # 1. Get all listings in that category
-        all_listings = Listing.query.filter_by(category=category.lower()).all()
-        
-        nearby_results = []
-        
-        # 2. Filter by distance
+        all_listings = Listing.query.all()
+        nearby_listings = []
+
         for item in all_listings:
+            # Filter by Category (if specific)
+            if category and category != 'service' and item.category != category:
+                continue
+
+            # Calculate Distance
             dist = calculate_distance(user_lat, user_lon, item.latitude, item.longitude)
             
             if dist <= radius_km:
-                # Add distance to the object so we can show "2.5km away"
                 item_data = item.to_dict()
-                item_data['distance_km'] = round(dist, 1)
-                nearby_results.append(item_data)
-        
-        # 3. Sort by nearest first (or by rating!)
-        nearby_results.sort(key=lambda x: x['distance_km'])
-        
-        return nearby_results
+                item_data['distance'] = round(dist, 1)
+                nearby_listings.append(item_data)
 
-def format_listings_response(self, listings, city_or_context):
+        # Sort by distance (closest first)
+        nearby_listings.sort(key=lambda x: x['distance'])
+        return nearby_listings
+
+    def get_listings(self, location, category):
+        """
+        [FIXED] Searches by Text (City/Township) instead of GPS.
+        """
+        try:
+            query = Listing.query
+            
+            # 1. Filter by Category
+            if category and category != 'service':
+                query = query.filter(Listing.category == category)
+                
+            # 2. Filter by Location
+            # SAFETY CHECK: Ensure location is a real string and not None
+            if location and isinstance(location, str) and location.lower() != 'near me':
+                # Use ILIKE for Postgres/Production or CONTAINS for SQLite
+                # We stick to the standard 'contains' which works on both usually
+                query = query.filter(Listing.address.contains(location))
+                
+            results = query.all()
+            return [item.to_dict() for item in results]
+
+        except Exception as e:
+            print(f"⚠️ Search Error: {e}")
+            return [] # Return empty list so bot doesn't crash
+
+    def format_listings_response(self, listings, context):
+        """
+        Turns the list of data into a nice WhatsApp message.
+        """
         if not listings:
-            return f"No listings found nearby."
+            return f"🚫 Sorry, I couldn't find any listings for *{context}*.\n\nTry sending your 📍 Location Pin to find people nearby."
         
-        reply = f"*Found {len(listings)} results near {city_or_context}:*\n\n"
+        message = f"🔍 *Found {len(listings)} results for {context}:*\n\n"
         
-        for item in listings:
-            # 1. Check the Verification Status
-            badge = "✅ *VERIFIED*" if item.get('is_verified') else "⚠️ _Unverified_"
+        for item in listings[:5]:  # Limit to top 5
+            dist_info = f" (📍 {item['distance']}km away)" if 'distance' in item else ""
+            verified_badge = "✅" if item['is_verified'] else "⚠️"
             
-            # 2. Format the Message
-            rating_str = item.get('rating', 'New')
-            dist = item.get('distance_km', '?')
+            message += (
+                f"*{item['title']}* {verified_badge}\n"
+                f"💰 {item['price']}\n"
+                f"📞 {item['contact']}\n"
+                f"🏠 {item['address']}{dist_info}\n"
+                f"------------------\n"
+            )
             
-            reply += (f"📍 *{item['title']}* {badge}\n"
-                      f"   Distance: {dist}km away\n"
-                      f"   💰 {item['price']} | ⭐ {rating_str}\n"
-                      f"   📞 {item['contact']}\n\n")
-        return reply
+        message += "\nReply with *'Menu'* to start over."
+        return message

@@ -12,7 +12,7 @@ class AIService:
         genai.configure(api_key=api_key)
         
         # We use 'gemini-pro' for text analysis
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-flash-latest')
 
     def parse_intent(self, user_text):
         """
@@ -22,19 +22,17 @@ class AIService:
         try:
             # The Magic Prompt: Forces structured JSON output
             prompt = f"""
-            You are the brain of a WhatsApp bot for 'LinkUp Geo', a township service marketplace.
-            Analyze the following user text and extract the intent.
-            
-            User Text: "{user_text}"
+            You are the brain of a WhatsApp bot.
+            Analyze: "{user_text}"
             
             Rules:
-            1. Identify the 'intent'. Options: 'search_listings', 'weather', 'greeting', 'unknown'.
-            2. If 'search_listings', extract 'category' (e.g., plumber, electrician, rental, job) and 'location' (city/township).
-            3. If the user describes a problem (e.g., "burst pipe"), map it to the correct category (e.g., "service").
-            4. Return ONLY valid JSON. No markdown, no conversational text.
+            1. 'intent': 'search_listings', 'weather', 'greeting', 'unknown'.
+            2. If 'search_listings', extract 'category' (plumber, job, etc) and 'location'.
+            3. IMPORTANT: If NO location is mentioned, set 'location' to "Soweto" (Default).
+            4. Return ONLY JSON.
             
-            Example Output:
-            {{"intent": "search_listings", "category": "service", "keywords": "plumber", "location": "soweto"}}
+            Example:
+            {{"intent": "search_listings", "category": "service", "keywords": "plumber", "location": "Soweto"}}
             """
             
             response = self.model.generate_content(prompt)
@@ -48,6 +46,7 @@ class AIService:
             print(f"AI Brain Error: {e}")
             # Fallback if AI fails
             return {"intent": "unknown"}
+        
 
 # Singleton instance
 ai_brain = AIService()
