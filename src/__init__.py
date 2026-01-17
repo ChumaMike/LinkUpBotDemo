@@ -26,18 +26,15 @@ def create_app():
         db.create_all()
 
     # Register Blueprints
-    from src.api.bot_routes import bot_bp
-    app.register_blueprint(bot_bp)
-    
+    from src.api.auth_routes import auth_bp
     from src.api.web_routes import web_bp
-    app.register_blueprint(web_bp)
+    from src.api.bot_routes import bot_bp
+    from src.api.admin_routes import admin_bp  # <--- NEW IMPORT
 
-    # We will create this next!
-    from src.api.auth_routes import auth_bp 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(web_bp)
+    app.register_blueprint(bot_bp)
+    app.register_blueprint(admin_bp)  # <--- REGISTER IT HERE
     
-    @app.route("/")
-    def home():
-        return "LinkUp Enterprise is Running!"
-        
     return app
+        
